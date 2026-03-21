@@ -247,7 +247,51 @@ server.registerTool(
         ],
       };
     }
-  }
+  },
+);
+
+server.registerTool(
+  "write_file",
+  {
+    title: "Write File",
+    description: "Write text content to a file inside the project directory",
+    inputSchema: {
+      filePath: z.string().min(1, "filePath is required"),
+      content: z.string(),
+    },
+  },
+  async ({ filePath, content }) => {
+    try {
+      const targetFile = path.resolve(BASE_DIR, filePath);
+
+      if (!targetFile.startsWith(BASE_DIR)) {
+        throw new Error("Access denied: outside base directory");
+      }
+
+      const parentDir = path.dirname(targetFile);
+      await fs.mkdir(parentDir, { recursive: true });
+
+      await fs.writeFile(targetFile, content, "utf-8");
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `File written successfully: ${filePath}`,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error: ${error.message}`,
+          },
+        ],
+      };
+    }
+  },
 );
 
 async function main() {
