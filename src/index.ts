@@ -7,11 +7,14 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-server.tool(
+server.registerTool(
   "hello",
-  "Say hello to a person",
   {
-    name: z.string().min(1, "Name is required"),
+    title: "Hello Tool",
+    description: "Say hello to a person",
+    inputSchema: z.object({
+      name: z.string().min(1, "Name is required"),
+    }),
   },
   async ({ name }) => {
     return {
@@ -22,7 +25,7 @@ server.tool(
         },
       ],
     };
-  }
+  },
 );
 
 async function main() {
