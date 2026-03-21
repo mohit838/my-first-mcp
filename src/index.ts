@@ -1,6 +1,10 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import fs from "fs/promises";
+import path from "path";
 import { z } from "zod";
+
+const BASE_DIR = process.cwd();
 
 const server = new McpServer({
   name: "my-first-mcp",
@@ -25,7 +29,7 @@ server.registerTool(
         },
       ],
     };
-  }
+  },
 );
 
 server.registerTool(
@@ -49,10 +53,49 @@ server.registerTool(
         },
       ],
     };
-  }
+  },
 );
 
+server.registerTool(
+  "list_files",
+  {
+    title: "List Files",
+    description: "List files in a directory (relative to project root)",
+    inputSchema: {
+      dir: z.string().optional(),
+    },
+  },
+  async ({ dir }) => {
+    try {
+      const targetDir = path.resolve(BASE_DIR, dir || ".");
 
+      // Security: ensure path is inside project
+      if (!targetDir.startsWith(BASE_DIR)) {
+        throw new Error("Access denied: outside base directory");
+      }
+
+      const files = await fs.readdir(targetDir);
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Files in ${dir || "."}:\n\n${files.join("\n")}`,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error: ${error.message}`,
+          },
+        ],
+      };
+    }
+  },
+);
 
 async function main() {
   const transport = new StdioServerTransport();
