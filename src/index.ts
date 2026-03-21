@@ -12,9 +12,9 @@ server.registerTool(
   {
     title: "Hello Tool",
     description: "Say hello to a person",
-    inputSchema: z.object({
+    inputSchema: {
       name: z.string().min(1, "Name is required"),
-    }),
+    },
   },
   async ({ name }) => {
     return {
@@ -25,8 +25,34 @@ server.registerTool(
         },
       ],
     };
-  },
+  }
 );
+
+server.registerTool(
+  "add_numbers",
+  {
+    title: "Add Numbers",
+    description: "Add two numbers together",
+    inputSchema: {
+      a: z.number(),
+      b: z.number(),
+    },
+  },
+  async ({ a, b }) => {
+    const sum = a + b;
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `The sum of ${a} and ${b} is ${sum}.`,
+        },
+      ],
+    };
+  }
+);
+
+
 
 async function main() {
   const transport = new StdioServerTransport();
