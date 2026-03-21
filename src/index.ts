@@ -6,6 +6,30 @@ import { z } from "zod";
 
 const BASE_DIR = process.cwd();
 
+const SKIP_DIRS = new Set(["node_modules", ".git", "dist"]);
+
+async function getAllFiles(dir: string): Promise<string[]> {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) {
+        continue;
+      }
+
+      const nestedFiles = await getAllFiles(fullPath);
+      files.push(...nestedFiles);
+    } else if (entry.isFile()) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+}
+
 const server = new McpServer({
   name: "my-first-mcp",
   version: "1.0.0",
@@ -141,6 +165,89 @@ server.registerTool(
       };
     }
   },
+);
+
+server.registerTool(
+  "search_text",
+  {
+    title: "Search Text",
+    description: "Search for text inside files under the project directory",
+    inputSchema: {
+      query: z.string().min(1, "query is required"),
+      dir: z.string().optional(),
+    },
+  },
+  async ({ query, dir }) => {
+    try {
+      const targetDir = path.resolve(BASE_DIR, dir || ".");
+
+      if (!targetDir.startsWith(BASE_DIR)) {
+        throw new Error("Access denied: outside base directory");
+      }
+
+      const stat = await fs.stat(targetDir);
+
+      if (!stat.isDirectory()) {
+        throw new Error("Target path is not a directory");
+      }
+
+      const allFiles = await getAllFiles(targetDir);
+      const matches: string[] = [];
+
+      for (const file of allFiles) {
+        try {
+          const fileStat = await fs.stat(file);
+
+          // Skip very large files
+          if (fileStat.size > 1024 * 1024) {
+            continue;
+          }
+
+          const content = await fs.readFile(file, "utf-8");
+          const lines = content.split("\n");
+
+          lines.forEach((line, index) => {
+            if (line.toLowerCase().includes(query.toLowerCase())) {
+              const relativePath = path.relative(BASE_DIR, file);
+              matches.push(`${relativePath}:${index + 1}: ${line.trim()}`);
+            }
+          });
+        } catch {
+          // Ignore unreadable or binary-like files for now
+          continue;
+        }
+      }
+
+      if (matches.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No matches found for "${query}" in ${dir || "."}.`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Found ${matches.length} match(es):\n\n${matches.join("\n")}`,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error: ${error.message}`,
+          },
+        ],
+      };
+    }
+  }
 );
 
 async function main() {
