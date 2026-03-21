@@ -7,7 +7,8 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "chat": "tsx src/chat.ts"
+    "chat": "tsx src/chat.ts",
+    "chat:mcp": "pnpm build && tsx src/chat.ts"
   },
   "keywords": [],
   "author": "Mohitul Islam",
