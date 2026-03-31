@@ -1,29 +1,25 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
+import { registerAddNumbersTool } from "./tools/add-numbers.js";
+import { registerHelloTool } from "./tools/hello.js";
+import { registerListFilesTool } from "./tools/list-files.js";
+import { registerReadFileTool } from "./tools/read-file.js";
+import { registerReplaceInFileTool } from "./tools/replace-in-file.js";
+import { registerSearchTextTool } from "./tools/search-text.js";
+import { registerWriteFileTool } from "./tools/write-file.js";
 
 const server = new McpServer({
-  name: "my-first-mcp",
+  name: "pai-my-first-mcp",
   version: "1.0.0",
 });
 
-server.tool(
-  "hello",
-  "Say hello to a person",
-  {
-    name: z.string().min(1, "Name is required"),
-  },
-  async ({ name }) => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Hello, ${name}! This is your first MCP tool.`,
-        },
-      ],
-    };
-  }
-);
+registerHelloTool(server);
+registerAddNumbersTool(server);
+registerListFilesTool(server);
+registerReadFileTool(server);
+registerSearchTextTool(server);
+registerWriteFileTool(server);
+registerReplaceInFileTool(server);
 
 async function main() {
   const transport = new StdioServerTransport();
